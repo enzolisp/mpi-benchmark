@@ -9,7 +9,10 @@
 
 # make all
 
-RESULTS_DIR="../results"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+RESULTS_DIR="$PROJECT_ROOT/results"
+BUILD_DIR="$PROJECT_ROOT/build"
 
 MACHINEFILE="nodes.$SLURM_JOB_ID"
 srun -l hostname | sort -n | awk '{print $2}' > $MACHINEFILE
@@ -18,7 +21,7 @@ MATRIX_SIZES="512 1024 2048 4096"
 PROC_COUNTS="1 2 4 8 16 32"
 PROGRAMS="mpi_coletiva mpi_p2p_bloqueante mpi_p2p_naobloqueante"
 
-RESULTS="../results/$SLURM_JOB_ID.csv"
+RESULTS="$RESULTS_DIR/$SLURM_JOB_ID.csv"
 echo "programa,n,num_processos,execucao,tempo_segundos" > $RESULTS
 
 REPETICOES=3
@@ -33,7 +36,7 @@ for prog in $PROGRAMS; do
                --mca btl ^openib \
                --mca btl_tcp_if_include eno2 \
                --bind-to none \
-               ./$(RESULTS_DIR)/$prog $n)
+               ./$(BUILD_DIR)/$prog $n)
         TEMPO=$(echo "$OUT" | grep "Execution time" | awk '{print $3}')
         echo "$prog,$n,$np,$rep,$TEMPO" >> $RESULTS
       done
