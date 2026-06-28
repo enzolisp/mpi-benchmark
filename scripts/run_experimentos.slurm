@@ -1,18 +1,19 @@
 #!/bin/bash
-#SBATCH --job-name=mpi_experimentos
+#SBATCH --job-name=mpi-benchmark
 #SBATCH --partition=hype
 #SBATCH --nodes=2
 #SBATCH --ntasks=32
 #SBATCH --time=2:00:00
-#SBATCH --output=%x_%j.out
-#SBATCH --error=%x_%j.err
+#SBATCH --output=output/%x_%j.out
+#SBATCH --error=output/%x_%j.err
 
 # make all
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+#SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$SLURM_SUBMIT_DIR"
 RESULTS_DIR="$PROJECT_ROOT/results"
 BUILD_DIR="$PROJECT_ROOT/build"
+mkdir -p $RESULTS_DIR
 
 MACHINEFILE="nodes.$SLURM_JOB_ID"
 srun -l hostname | sort -n | awk '{print $2}' > $MACHINEFILE
@@ -36,7 +37,7 @@ for prog in $PROGRAMS; do
                --mca btl ^openib \
                --mca btl_tcp_if_include eno2 \
                --bind-to none \
-               ./$(BUILD_DIR)/$prog $n)
+               /$BUILD_DIR/$prog $n)
         TEMPO=$(echo "$OUT" | grep "Execution time" | awk '{print $3}')
         echo "$prog,$n,$np,$rep,$TEMPO" >> $RESULTS
       done
