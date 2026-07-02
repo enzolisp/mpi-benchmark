@@ -1,9 +1,10 @@
 #!/bin/bash
 #SBATCH --job-name=mpi-benchmark
 #SBATCH --partition=hype
-#SBATCH --nodes=2
-#SBATCH --ntasks=32
-#SBATCH --time=2:00:00
+#SBATCH --nodes=4
+#SBATCH --ntasks=128
+#SBATCH --ntasks-per-node=32
+#SBATCH --time=24:00:00
 #SBATCH --output=output/%x_%j.out
 #SBATCH --error=output/%x_%j.err
 
@@ -11,43 +12,45 @@ PROJECT_ROOT="$SLURM_SUBMIT_DIR"
 RESULTS_DIR="$PROJECT_ROOT/results"
 BUILD_DIR="$PROJECT_ROOT/build"
 NODES_DIR="$PROJECT_ROOT/nodes"
-mkdir -p $RESULTS_DIR
+RASTRO_OUT_DIR="$PROJECT_ROOT/rastro"
+
+mkdir -p "$RESULTS_DIR" "$NODES_DIR" "$RASTRO_OUT_DIR"
 
 export LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so
 export LD_LIBRARY_PATH=$HOME/.local/share/akypuera/build:$LD_LIBRARY_PATH
 
-mkdir -p $NODES_DIR
 MACHINEFILE="$NODES_DIR/nodes.$SLURM_JOB_ID"
 srun -l hostname | sort -n | awk '{print $2}' > $MACHINEFILE
 
 MATRIX_SIZES="512 1024 2048 4096"
 PROC_COUNTS="1 2 4 8 16 32"
+NODE_COUNTS="1 2 3 4"
 PROGRAMS="mpi_coletiva mpi_p2p_bloqueante mpi_p2p_naobloqueante"
 
 RESULTS="$RESULTS_DIR/$SLURM_JOB_ID.csv"
-echo "programa,n,num_processos,execucao,tempo_segundos" > $RESULTS
+echo "programa,n,num_processos,num_nos,execucao,tempo_segundos" > "$RESULTS"
 
 REPETICOES=3
 
-RASTRO_OUT_DIR="$PROJECT_ROOT/rastro"
-mkdir -p $RASTRO_OUT_DIR
-cd $RASTRO_OUT_DIR
+cd "$RASTRO_OUT_DIR"
 
-for prog in $PROGRAMS; do
-  for n in $MATRIX_SIZES; do
-    for np in $PROC_COUNTS; do
-      for rep in $(seq 1 $REPETICOES); do
-        echo ">> Executando $prog n=$n np=$np rep=$rep"
-        OUT=$(LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so:/usr/lib/x86_64-linux-gnu/libmpi.so \
-		mpirun \
-	       -np $np \
-               -machinefile $MACHINEFILE \
-               --mca btl ^openib \
-               --mca btl_tcp_if_include eno2 \
-               --bind-to none \
-               /$BUILD_DIR/$prog $n)
-        TEMPO=$(echo "$OUT" | grep "Execution time" | awk '{print $3}')
-        echo "$prog,$n,$np,$rep,$TEMPO" >> $RESULTS
+for num_nodes in $NODE_COUNTS; do
+  # Gera machinefile com apenas os primeiros num_nodes nós da alocação
+  NODE_MACHINEFILE="$NODES_DIR/nodes.${SLURM_JOB_ID}.n${num_nodes}"
+  head -n $(( num_nodes * 20 )) "$MACHINEFILE" > "$NODE_MACHINEFILE"
+
+  MPIRUN_OPTS=(-machinefile "$NODE_MACHINEFILE" --mca btl ^openib --mca btl_tcp_if_include eno2 --bind-to none)
+
+  for prog in $PROGRAMS; do
+    for n in $MATRIX_SIZES; do
+      for np in $PROC_COUNTS; do
+        for rep in $(seq 1 $REPETICOES); do
+          echo ">> Executando $prog n=$n np=$np nodes=$num_nodes rep=$rep"
+          OUT=$(LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so:/usr/lib/x86_64-linux-gnu/libmpi.so \
+                mpirun -np "$np" "${MPIRUN_OPTS[@]}" "$BUILD_DIR/$prog" "$n")
+          TEMPO=$(echo "$OUT" | grep "Execution time" | awk '{print $3}')
+          echo "$prog,$n,$np,$num_nodes,$rep,$TEMPO" >> "$RESULTS"
+        done
       done
     done
   done
