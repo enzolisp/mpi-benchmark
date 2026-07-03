@@ -18,11 +18,9 @@ mkdir -p "$NODES_DIR" "$RASTRO_OUT_DIR"
 export LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so
 export LD_LIBRARY_PATH=$HOME/.local/share/akypuera/build:$LD_LIBRARY_PATH
 
-# Machinefile completo: uma linha por task alocada (96 linhas, 32 por nó)
 MACHINEFILE="$NODES_DIR/nodes.$SLURM_JOB_ID"
 srun -l hostname | sort -n | awk '{print $2}' > "$MACHINEFILE"
 
-# Lista de hostnames únicos (um por nó, na ordem de alocação)
 HOSTLIST="$NODES_DIR/hosts.$SLURM_JOB_ID"
 awk '!seen[$0]++' "$MACHINEFILE" > "$HOSTLIST"
 
@@ -32,9 +30,6 @@ NODE_COUNTS="1 2 3"
 PROCS_PER_NODE="1 2 4 8 16 32"
 
 for num_nodes in $NODE_COUNTS; do
-  # Machinefile intercalado: hype1, hype2, hype3, hype1, hype2, hype3, ...
-  # Garante que mpirun -np N distribui round-robin entre os nós,
-  # colocando exatamente pn processos por nó.
   NODE_MACHINEFILE="$NODES_DIR/nodes.${SLURM_JOB_ID}.n${num_nodes}"
   python3 -c "
 hosts = open('$HOSTLIST').read().splitlines()[:$num_nodes]
@@ -48,16 +43,15 @@ print('\n'.join(h for _ in range(slots) for h in hosts))
     for n in $MATRIX_SIZES; do
       for pn in $PROCS_PER_NODE; do
         np=$(( num_nodes * pn ))
-	for rep in "1 2"; do 
-		RUN_DIR="$RASTRO_OUT_DIR/${SLURM_JOB_ID}_nodes${num_nodes}_${prog}_size${n}_nproc${np}_rep${rep}"
-		mkdir -p "$RUN_DIR"
-
-		echo ">> Executando $prog n=$n np=$np (${pn}/no) nodes=$num_nodes"
-
-		(cd "$RUN_DIR" && \
-		  LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so:/usr/lib/x86_64-linux-gnu/libmpi.so \
-		  mpirun -np "$np" "${MPIRUN_OPTS[@]}" "$BUILD_DIR/$prog" "$n")
-      done
-    done
-  done
-done
+        for rep in 1 2; do
+          RUN_DIR="$RASTRO_OUT_DIR/${SLURM_JOB_ID}_nodes${num_nodes}_${prog}_size${n}_nproc${np}_rep${rep}"
+          mkdir -p "$RUN_DIR"
+          echo ">> Executando $prog n=$n np=$np (${pn}/no) nodes=$num_nodes rep=$rep"
+          (cd "$RUN_DIR" && \
+            LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so:/usr/lib/x86_64-linux-gnu/libmpi.so \
+            mpirun -np "$np" "${MPIRUN_OPTS[@]}" "$BUILD_DIR/$prog" "$n")
+        done  # rep
+      done  # pn
+    done  # n
+  done  # prog
+done  # num_nodes
