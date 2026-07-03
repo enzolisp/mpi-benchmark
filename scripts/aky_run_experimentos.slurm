@@ -48,15 +48,15 @@ print('\n'.join(h for _ in range(slots) for h in hosts))
     for n in $MATRIX_SIZES; do
       for pn in $PROCS_PER_NODE; do
         np=$(( num_nodes * pn ))
+	for rep in "1 2"; do 
+		RUN_DIR="$RASTRO_OUT_DIR/${SLURM_JOB_ID}_nodes${num_nodes}_${prog}_size${n}_nproc${np}_rep${rep}"
+		mkdir -p "$RUN_DIR"
 
-        RUN_DIR="$RASTRO_OUT_DIR/${SLURM_JOB_ID}_nodes${num_nodes}_${prog}_size${n}_nproc${np}"
-        mkdir -p "$RUN_DIR"
+		echo ">> Executando $prog n=$n np=$np (${pn}/no) nodes=$num_nodes"
 
-        echo ">> Executando $prog n=$n np=$np (${pn}/no) nodes=$num_nodes"
-
-        (cd "$RUN_DIR" && \
-          LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so:/usr/lib/x86_64-linux-gnu/libmpi.so \
-          mpirun -np "$np" "${MPIRUN_OPTS[@]}" "$BUILD_DIR/$prog" "$n")
+		(cd "$RUN_DIR" && \
+		  LD_PRELOAD=$HOME/.local/share/akypuera/build/libaky.so:/usr/lib/x86_64-linux-gnu/libmpi.so \
+		  mpirun -np "$np" "${MPIRUN_OPTS[@]}" "$BUILD_DIR/$prog" "$n")
       done
     done
   done
