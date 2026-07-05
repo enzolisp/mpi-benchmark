@@ -57,7 +57,7 @@ ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
              scales = "free_x", space = "free_x") +
   scale_fill_manual(values = cores_funcao) +
   labs(
-    title    = "Tempo médio por processo em cada função MPI (size = 1500×1500)",
+    # title    = "Tempo médio por processo em cada função MPI (size = 1500×1500)",
     subtitle = "Mediana de 2 repetições; média entre os ranks",
     x        = "Número de processos",
     y        = "Tempo (s)",
@@ -68,12 +68,15 @@ ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
     strip.background = element_rect(fill = "#f0f0f0"),
-    axis.text.x      = element_text(angle = 45, hjust = 1)
+    axis.text.x      = element_text(angle = 45, hjust = 1),
+    legend.text       = element_text(size = 12),      
+    legend.title      = element_text(size = 13),      
+    legend.key.size   = unit(0.8, "cm")  
   )
 
 ggsave("../imgs/plot_funcoes_stacked.pdf", width = 12, height = 7)
-ggsave("../imgs/plot_funcoes_stacked.png", width = 12, height = 7, dpi = 150)
-message("Salvo: plot_funcoes_stacked.pdf / .png")
+# ggsave("../imgs/plot_funcoes_stacked.png", width = 12, height = 7, dpi = 150)
+message("Salvo: plot_funcoes_stacked.pdf")
 
 
 # --- Gráfico 2: só MPI_Wait e MPI_Bcast para destacar o colapso da versão NB ---
@@ -87,7 +90,7 @@ ggplot(plot_nb, aes(x = nproc, y = t, color = funcao, linetype = tipo, shape = t
   facet_wrap(~ nodes_label, ncol = 3, scales = "free_x") +
   scale_color_manual(values = c("MPI_Wait" = "#8c510a", "MPI_Bcast" = "#e31a1c")) +
   labs(
-    title    = "MPI_Wait (não bloqueante) vs MPI_Bcast (coletiva/bloqueante) — size=1500",
+    # title    = "MPI_Wait (não bloqueante) vs MPI_Bcast (coletiva/bloqueante) — size=1500",
     x        = "Número de processos",
     y        = "Tempo médio por processo (s)",
     color    = "Função",
@@ -102,5 +105,5 @@ ggplot(plot_nb, aes(x = nproc, y = t, color = funcao, linetype = tipo, shape = t
   )
 
 ggsave("../imgs/plot_wait_vs_bcast.pdf", width = 10, height = 4)
-ggsave("../imgs/plot_wait_vs_bcast.png", width = 10, height = 4, dpi = 150)
-message("Salvo: plot_wait_vs_bcast.pdf / .png")
+# ggsave("../imgs/plot_wait_vs_bcast.png", width = 10, height = 4, dpi = 150)
+message("Salvo: plot_wait_vs_bcast.pdf")

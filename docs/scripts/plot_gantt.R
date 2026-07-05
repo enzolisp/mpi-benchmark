@@ -52,7 +52,7 @@ p_geral <- ggplot(gantt,
                      name = "Rank") +
   scale_x_continuous(name = "Tempo [s]") +
   labs(
-    title    = "Linha do tempo de cada rank (size=1500, nproc=96, 3 nos, rep 1)",
+    # title    = "Linha do tempo de cada rank (size=1500, nproc=96, 3 nos, rep 1)",
     subtitle = "Espaco em branco = computacao local; cinza = espera na sincronizacao final"
   ) +
   theme_bw(base_size = 11) +
@@ -66,8 +66,8 @@ p_geral <- ggplot(gantt,
   guides(fill = guide_legend(nrow = 2))
 
 ggsave("../imgs/gantt_geral.pdf", p_geral, width = 11, height = 9)
-ggsave("../imgs/gantt_geral.png", p_geral, width = 11, height = 9, dpi = 150)
-message("Salvo: gantt_geral.pdf / .png")
+# ggsave("../imgs/gantt_geral.png", p_geral, width = 11, height = 9, dpi = 150)
+message("Salvo: gantt_geral.pdf")
 
 # ─── Gráfico 2: Zoom na fase de distribuição (primeiros 0.6s) ────────────────
 gantt_zoom <- gantt %>%
@@ -89,7 +89,7 @@ p_zoom <- ggplot(gantt_zoom,
                      name = "Rank") +
   scale_x_continuous(name = "Tempo [s]", limits = c(0, 0.6)) +
   labs(
-    title    = "Zoom na fase de distribuicao (primeiros 0.6s)",
+    # title    = "Zoom na fase de distribuicao (primeiros 0.6s)",
     subtitle = "Mesma execucao da figura anterior"
   ) +
   theme_bw(base_size = 11) +
@@ -103,5 +103,5 @@ p_zoom <- ggplot(gantt_zoom,
   guides(fill = guide_legend(nrow = 2))
 
 ggsave("../imgs/gantt_dist.pdf", p_zoom, width = 11, height = 9)
-ggsave("../imgs/gantt_dist.png", p_zoom, width = 11, height = 9, dpi = 150)
-message("Salvo: gantt_dist.pdf / .png")
+# ggsave("../imgs/gantt_dist.png", p_zoom, width = 11, height = 9, dpi = 150)
+message("Salvo: gantt_dist.pdf")

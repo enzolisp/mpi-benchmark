@@ -51,7 +51,7 @@ ggplot(speedup, aes(x = nproc, y = speedup, color = tipo, shape = tipo)) +
     "P2P Não Bloqueante" = "#d01c8b"
   )) +
   labs(
-    title    = "Speedup em relação à execução sequencial (1 processo, 1 nó)",
+    # title    = "Speedup em relação à execução sequencial (1 processo, 1 nó)",
     subtitle = "Linha tracejada cinza = speedup ideal (linear)",
     x        = "Número de processos (escala log)",
     y        = "Speedup (escala log)",
@@ -66,5 +66,5 @@ ggplot(speedup, aes(x = nproc, y = speedup, color = tipo, shape = tipo)) +
   )
 
 ggsave("../imgs/plot_speedup.pdf", width = 10, height = 4.5)
-ggsave("../imgs/plot_speedup.png", width = 10, height = 4.5, dpi = 150)
-message("Salvo: plot_speedup.pdf / .png")
+# ggsave("../imgs/plot_speedup.png", width = 10, height = 4.5, dpi = 150)
+message("Salvo: plot_speedup.pdf")

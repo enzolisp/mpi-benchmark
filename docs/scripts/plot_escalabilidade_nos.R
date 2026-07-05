@@ -48,7 +48,7 @@ ggplot(exec_pn, aes(x = factor(nodes), y = tempo,
     "P2P Não Bloqueante" = "#d01c8b"
   )) +
   labs(
-    title    = "Escalabilidade por número de nós (processos por nó fixo)",
+    # title    = "Escalabilidade por número de nós (processos por nó fixo)",
     subtitle = "Barras de erro = ±1 desvio padrão entre as 2 repetições",
     x        = "Número de nós",
     y        = "Tempo (s)",
@@ -59,9 +59,12 @@ ggplot(exec_pn, aes(x = factor(nodes), y = tempo,
   theme(
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
-    strip.background = element_rect(fill = "#f0f0f0")
+    strip.background = element_rect(fill = "#f0f0f0"),
+    legend.text       = element_text(size = 12),
+    legend.title      = element_text(size = 13),
+    legend.key.size   = unit(0.8, "cm")
   )
 
 ggsave("../imgs/plot_escalabilidade_nos.pdf", width = 14, height = 8)
-ggsave("../imgs/plot_escalabilidade_nos.png", width = 14, height = 8, dpi = 150)
-message("Salvo: plot_escalabilidade_nos.pdf / .png")
+# ggsave("../imgs/plot_escalabilidade_nos.png", width = 14, height = 8, dpi = 150)
+message("Salvo: plot_escalabilidade_nos.pdf")

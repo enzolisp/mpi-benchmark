@@ -38,7 +38,7 @@ ggplot(exec, aes(x = nproc, y = tempo, color = tipo, shape = tipo)) +
     "P2P Não Bloqueante" = "#d01c8b"
   )) +
   labs(
-    title    = "Tempo total de execução (mediana de 2 repetições)",
+    # title    = "Tempo total de execução (média de 2 repetições)",
     x        = "Número de processos (escala log)",
     y        = "Tempo (s)",
     color    = "Versão",
@@ -52,5 +52,5 @@ ggplot(exec, aes(x = nproc, y = tempo, color = tipo, shape = tipo)) +
   )
 
 ggsave("../imgs/plot_tempo_total.pdf", width = 10, height = 8)
-ggsave("../imgs/plot_tempo_total.png", width = 10, height = 8, dpi = 150)
-message("Salvo: plot_tempo_total.pdf / .png")
+# ggsave("../imgs/plot_tempo_total.png", width = 10, height = 8, dpi = 150)
+message("Salvo: plot_tempo_total.pdf")
