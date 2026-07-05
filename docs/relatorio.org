@@ -6,30 +6,36 @@
 #+LANGUAGE: pt
 #+LATEX_HEADER: \usepackage[margin=2.2cm]{geometry}
 #+LATEX_HEADER: \usepackage{float}
+#+LATEX_HEADER: \usepackage{graphicx}
 
 * Introdução
 
-As três aplicações comparadas fazem a mesma coisa: multiplicar duas
-matrizes NxN. O processo 0 (mestre) divide as linhas da matriz A entre
-todos os processos, envia a matriz B inteira para todos, cada processo
-calcula a sua parte do resultado e devolve ao mestre. A única diferença
-entre as versões é *como* esses dados trafegam:
+Este trabalho aborda três formas de comunicação de dados em aplicações
+desenvolvidas com MPI, comparando seu desempenho. Os modelos de comunicação
+analisados são os seguintes:
 
-1. *Coletiva*: usa as operações de grupo do MPI -- =MPI_Scatter= para
-   repartir A, =MPI_Bcast= para difundir B e =MPI_Gather= para juntar o
-   resultado. A biblioteca MPI decide internamente a melhor forma de
-   mover os dados.
-2. *P2P bloqueante* (síncrona): o mestre envia cada pedaço com
-   =MPI_Send= e os trabalhadores recebem com =MPI_Recv=. Cada chamada
-   só retorna quando a mensagem foi de fato entregue/recebida. B ainda
-   é difundida com =MPI_Bcast=.
-3. *P2P não bloqueante* (assíncrona): as mesmas trocas, mas com
-   =MPI_Isend=/=MPI_Irecv= (e =MPI_Ibcast= para B), que apenas
-   /iniciam/ a operação e retornam na hora. Quem precisa do dado chama
-   =MPI_Wait= para esperar a conclusão.
+1. *Comunicação coletiva:* utiliza operações coletivas do MPI, empregando
+ MPI_Scatter para distribuir as linhas da matriz (A), MPI_Bcast para
+ difundir a matriz (B) e MPI_Gather para reunir a matriz resultante. Nessa
+ abordagem, a biblioteca MPI decide internamente a estratégia mais
+ eficiente para realizar a comunicação entre os processos.
+2. *Comunicação ponto a ponto bloqueante (síncrona):* o processo mestre envia
+ cada parcela dos dados utilizando MPI_Send, enquanto os processos
+ trabalhadores as recebem por meio de MPI_Recv. Cada operação retorna
+ apenas após a conclusão da transferência correspondente. A matriz (B)
+ continua sendo distribuída com MPI_Bcast.
+3. *Comunicação ponto a ponto não bloqueante (assíncrona):* utiliza MPI_Isend,
+ MPI_Irecv e MPI_Ibcast, que apenas iniciam as operações de comunicação e
+ retornam imediatamente. A sincronização ocorre posteriormente por meio de
+ MPI_Wait, garantindo a conclusão das transferências antes da utilização
+ dos dados.
 
-Queremos saber: qual padrão é mais rápido, e onde cada um gasta seu
-tempo?
+O problema escolhido para a comparação foi a multiplicação de duas matrizes de
+dimensão (N \times N). Nessa aplicação, o processo de rank 0 (mestre) divide
+as linhas da matriz (A) entre todos os processos, distribui a matriz (B)
+integralmente para cada um deles, cada processo calcula sua respectiva
+parcela da matriz resultante e, ao final, devolve o resultado ao processo
+mestre.
 
 * Metodologia
 
@@ -46,8 +52,8 @@ dos fatores abaixo foram executadas 2 vezes (324 execuções no total):
 | Tamanho (NxN)     | 500, 1000, 1500                              |
 
 Cada execução foi rastreada com a biblioteca akypuera: toda chamada MPI
-de todo processo fica registrada com início, fim e duração. É desse
-rastro que vêm todas as análises. As métricas usadas são:
+de todo processo fica registrada com início, fim e duração. As análises foram feitas a partir desses rastros. 
+As métricas usadas são:
 
 - *Tempo total*: medido pela própria aplicação com =MPI_Wtime= no
   processo 0 (do início da distribuição até o fim da coleta).
@@ -55,7 +61,7 @@ rastro que vêm todas as análises. As métricas usadas são:
   processo passou dentro de cada função (por exemplo, todo o tempo de
   =MPI_Recv= do processo 3) e tiramos a média entre os processos. Isso
   responde: "em média, quanto um processo gasta nessa função?"
-- Como cada configuração rodou 2 vezes, reportamos a *mediana* das duas
+- Como cada configuração rodou 2 vezes, reportamos a mediana das duas
   e usamos o desvio padrão como indicação de variabilidade.
 
 =MPI_Finalize= é excluído do tempo por função: ele só marca o fim do
@@ -70,10 +76,10 @@ que o padrão MPI não permite (aqui funciona, mas é incorreto).
 * Linha do tempo das execuções (Gantt)
 
 A forma mais direta de ver a diferença entre as versões é desenhar a
-linha do tempo de uma execução: *cada linha horizontal é um processo* e
+linha do tempo de uma execução: cada linha horizontal é um processo e
 o tempo corre para a direita. Trechos coloridos são chamadas MPI (uma
-cor por função); trechos em *branco* são computação (o processo está
-multiplicando matrizes, sem comunicar); o *cinza* final é o
+cor por função); trechos em branco são computação (o processo está
+multiplicando matrizes, sem comunicar); o cinza final é o
 =MPI_Finalize= (o processo já acabou e está esperando os demais).
 
 Usamos a maior configuração do experimento -- matriz 1500x1500, 96
@@ -81,9 +87,14 @@ processos em 3 nós (32 por nó) -- porque é onde a comunicação mais
 aparece. Os processos 0 a 31 estão no mesmo nó que o mestre; os demais
 estão em nós remotos, acessados pela rede.
 
-#+CAPTION: Uma execução de cada versão (size=1500, 96 processos, 3 nós). Cada linha horizontal é um processo.
-#+ATTR_LATEX: :width 0.8\textwidth :placement [H]
-[[file:docs/imgs/gantt_geral.png]]
+#+BEGIN_EXPORT latex
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/gantt_geral.pdf}
+\caption{Uma execução de cada versão (size=1500, 96 processos, 3 nós). Cada linha horizontal é um processo.}
+\label{fig:gantt_geral}
+\end{figure}
+#+END_EXPORT
 
 A leitura do quadro geral já resume o experimento: nas versões coletiva
 e bloqueante a comunicação ocupa só o começo e o fim, e tudo termina em
@@ -95,9 +106,14 @@ análise (seção seguinte).
 Para ver as diferenças de semântica entre as versões, ampliamos os
 primeiros 0.6s (fase de distribuição dos dados):
 
-#+CAPTION: Zoom nos primeiros 0.6s da mesma execução.
-#+ATTR_LATEX: :width 0.8\textwidth :placement [H]
-[[file:docs/imgs/gantt_dist.png]]
+#+BEGIN_LATEX
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/gantt_dist.pdf}
+\caption{Zoom nos primeiros 0.6s da mesma execução.}
+\label{fig:gantt_dist}
+\end{figure}
+#+END_LATEX
 
 - *Coletiva*: todos entram juntos no =Scatter= (laranja) e depois no
   =Bcast= (vermelho). Note a fronteira de nó: os processos 0-31 (mesmo
@@ -114,6 +130,33 @@ primeiros 0.6s (fase de distribuição dos dados):
   pela matriz B também está dentro desse =Wait=.
 
 * Tempo por operação MPI
+
+O gráfico abaixo decompõe o tempo total por função MPI para size=1500,
+empilhando a contribuição de cada função. Permite ver de imediato qual
+função domina o custo em cada versão e configuração.
+
+#+BEGIN_LATEX
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/plot_funcoes_stacked.pdf}
+\caption{Tempo médio por processo em cada função MPI (size=1500, mediana de 2 repetições). Barras empilhadas por função.}
+\label{fig:plot_funcoes_stacked}
+\end{figure}
+#+END_LATEX
+
+O gráfico seguinte isola a comparação central do experimento: o
+=MPI_Wait= da versão não bloqueante (que engloba a espera real pela
+comunicação) versus o =MPI_Bcast= das versões coletiva e bloqueante
+(que fazem a mesma difusão de B, mas com algoritmo em árvore).
+
+#+BEGIN_LATEX
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/plot_wait_vs_bcast.pdf}
+\caption{MPI\_Wait (não bloqueante) vs MPI\_Bcast (coletiva e bloqueante) para size=1500. O colapso do Wait em múltiplos nós é a causa da lentidão da versão assíncrona.}
+\label{fig:plot_wait_vs_bcast}
+\end{figure}
+#+END_LATEX
 
 A tabela abaixo mostra o tempo médio por processo em cada função
 (mediana das 2 execuções), para size=1500 em 3 nós, nas duas maiores
@@ -242,7 +285,34 @@ O que a tabela mostra, coluna a coluna:
 * Tempo total de execução
 
 Mediana das 2 execuções, size=1500 (os tamanhos menores mostram as
-mesmas tendências):
+mesmas tendências).
+
+O gráfico abaixo mostra o tempo total para todas as combinações de
+tamanho de matriz, número de nós e número de processos. Cada painel
+corresponde a um tamanho de matriz (linhas) e uma configuração de nós
+(colunas); o eixo x está em escala logarítmica.
+
+#+BEGIN_LATEX
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/plot_tempo_total.pdf}
+\caption{Tempo total de execução (mediana de 2 repetições) para todas as combinações experimentais. Eixo x em escala log.}
+\label{fig:plot_tempo_total}
+\end{figure}
+#+END_LATEX
+
+O gráfico de escalabilidade abaixo fixa o número de processos por nó e
+varia o número de nós, isolando o efeito da comunicação inter-nó. As
+barras de erro indicam o desvio padrão entre as 2 repetições.
+
+#+BEGIN_LATEX
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/plot_escalabilidade_nos.pdf}
+\caption{Escalabilidade por número de nós com número de processos por nó fixo. Barras de erro = ±1 desvio padrão.}
+\label{fig:plot_escalabilidade_nos}
+\end{figure}
+#+END_LATEX
 
 | Nós | nproc | coletiva | p2p bloq. | p2p não bloq. |
 |-----+-------+----------+-----------+---------------|
@@ -254,6 +324,21 @@ mesmas tendências):
 |   2 |    64 | 1.74 s   | 1.72 s    | *6.16 s*      |
 |   3 |    48 | 1.83 s   | 1.71 s    | *3.53 s*      |
 |   3 |    96 | 1.57 s   | 1.58 s    | *10.60 s*     |
+
+O speedup de cada versão em relação à execução sequencial (1 processo,
+1 nó) é mostrado abaixo em escala log×log. A linha tracejada cinza
+representa o speedup ideal (linear). Valores abaixo dela indicam ganho
+sub-linear; valores que caem abruptamente indicam overhead de
+comunicação superando o ganho de paralelismo.
+
+#+BEGIN_LATEX
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{imgs/plot_speedup.pdf}
+\caption{Speedup em relação à execução com 1 processo. Escala log×log. Linha tracejada = speedup ideal.}
+\label{fig:plot_speedup}
+\end{figure}
+#+END_LATEX
 
 Lendo a tabela de cima para baixo:
 
@@ -322,5 +407,10 @@ só aparece quando a comunicação cruza a rede.
 
 Para este algoritmo, a versão com *operações coletivas (bloqueantes) é
 a preferível*: desempenho igual ou melhor em todos os cenários, código
-mais simples e escalabilidade robusta. Análise completa e reproduzível
-em =labbook.org=.
+mais simples e escalabilidade robusta. 
+
+* Referências
+
+  Alguns experimentos deste trabalho utilizaram os recursos da infraestrutura PCAD, http://pcad.inf.ufrgs.br, no INF/UFRGS.
+
+
