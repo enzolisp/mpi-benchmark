@@ -57,7 +57,8 @@ processo fica registrada com início, fim e duração. As métricas usadas são:
 =MPI_Finalize= é excluído da análise por função: sua duração é apenas
 espera pelos processos mais lentos, não comunicação.
 
-* Linha do tempo das execuções (Gantt)
+#+LATEX: \newpage
+* Linha do tempo das execuções
 
 A forma mais direta de comparar as versões é olhar a linha do tempo de
 uma execução: cada linha horizontal é um processo e o tempo corre para
