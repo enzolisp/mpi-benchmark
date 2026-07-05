@@ -1,0 +1,9 @@
+Container, 0, 0, 0, 19.7659, 19.7659, 0
+Container, 0, ROOT, 0, 19.7659, 19.7659, root
+Container, root, PROCESS, 0, 19.7659, 19.7659, rank0
+State, rank0, STATE, 0.000002, 0.000003, 0.000001, 0.000000, MPI_Comm_rank
+State, rank0, STATE, 0.000004, 0.000006, 0.000002, 0.000000, MPI_Comm_size
+State, rank0, STATE, 0.036068, 0.036075, 0.000007, 0.000000, MPI_Wtime
+State, rank0, STATE, 0.055971, 0.055976, 0.000005, 0.000000, MPI_Bcast
+State, rank0, STATE, 18.757683, 18.757700, 0.000017, 0.000000, MPI_Wtime
+State, rank0, STATE, 18.758840, 19.765876, 1.007036, 0.000000, MPI_Finalize
