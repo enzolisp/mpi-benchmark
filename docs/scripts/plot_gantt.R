@@ -92,10 +92,6 @@ p_zoom <- ggplot(gantt_zoom,
   scale_y_continuous(breaks = c(0, 16, 32, 48, 64, 80, 96),
                      name = "Rank") +
   scale_x_continuous(name = "Tempo [s]", limits = c(0, 0.6)) +
-  labs(
-    # title    = "Zoom na fase de distribuicao (primeiros 0.6s)",
-    subtitle = "Mesma execucao da figura anterior"
-  ) +
   theme_bw(base_size = 11) +
   theme(
     legend.position  = "top",

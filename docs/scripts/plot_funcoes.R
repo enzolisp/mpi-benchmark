@@ -63,9 +63,10 @@ ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
     panel.grid.minor = element_blank(),
     strip.background = element_rect(fill = "#f0f0f0"),
     axis.title       = element_text(size = 15),
-    strip.text       = element_text(size = 15),
-    axis.text.y      = element_text(size = 10, angle = 45),
-    axis.text.x      = element_text(angle = 45, hjust = 1, size = 10),
+    strip.text.y       = element_text(size = 11),
+    strip.text.x       = element_text(size = 15),
+    axis.text.y      = element_text(size = 10),
+    axis.text.x      = element_text(angle = 45, hjust = 1, size = 13),
     legend.text      = element_text(size = 15),
     legend.title     = element_text(size = 13),
     legend.key.size  = unit(0.8, "cm")
