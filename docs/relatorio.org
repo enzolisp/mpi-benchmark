@@ -7,6 +7,9 @@
 #+LATEX_HEADER: \usepackage[margin=2.2cm]{geometry}
 #+LATEX_HEADER: \usepackage{float}
 #+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \usepackage{caption}
+
+#+LATEX: \captionsetup{font=footnotesize}
 
 * Introdução
 
@@ -67,19 +70,13 @@ As métricas usadas são:
 =MPI_Finalize= é excluído do tempo por função: ele só marca o fim do
 programa, e sua duração é apenas espera pelos processos mais lentos.
 
-Duas limitações do código, iguais nas três versões: a divisão de linhas
-usa divisão inteira (=n/size=), então quando N não é múltiplo do número
-de processos as últimas linhas não são calculadas; e, na versão não
-bloqueante, o mestre nunca espera seus próprios =Isend= terminarem, o
-que o padrão MPI não permite (aqui funciona, mas é incorreto).
-
 * Linha do tempo das execuções (Gantt)
 
 A forma mais direta de ver a diferença entre as versões é desenhar a
 linha do tempo de uma execução: cada linha horizontal é um processo e
 o tempo corre para a direita. Trechos coloridos são chamadas MPI (uma
 cor por função); trechos em branco são computação (o processo está
-multiplicando matrizes, sem comunicar); o cinza final é o
+multiplicando matrizes, sem comunicar). O cinza final é o
 =MPI_Finalize= (o processo já acabou e está esperando os demais).
 
 Usamos a maior configuração do experimento -- matriz 1500x1500, 96
@@ -96,12 +93,11 @@ estão em nós remotos, acessados pela rede.
 \end{figure}
 #+END_EXPORT
 
-A leitura do quadro geral já resume o experimento: nas versões coletiva
+Nas versões coletiva
 e bloqueante a comunicação ocupa só o começo e o fim, e tudo termina em
 cerca de 2.7s. Na versão não bloqueante quase todo o gráfico é marrom
 (=MPI_Wait=): os processos passam a maior parte dos ~10s de execução
-*esperando* dados chegarem. Entender esse marrom é o ponto central da
-análise (seção seguinte).
+esperando dados chegarem. 
 
 Para ver as diferenças de semântica entre as versões, ampliamos os
 primeiros 0.6s (fase de distribuição dos dados):
@@ -117,18 +113,19 @@ primeiros 0.6s (fase de distribuição dos dados):
 
 - *Coletiva*: todos entram juntos no =Scatter= (laranja) e depois no
   =Bcast= (vermelho). Note a fronteira de nó: os processos 0-31 (mesmo
-  nó do mestre) saem do =Bcast= em ~0.3s e começam a computar; os
+  nó do mestre) saem do =Bcast= em ~0.3s e começam a computar, enquanto que  os
   processos remotos só saem em ~0.7s, porque receber B pela rede demora
   mais.
 - *Bloqueante*: os trabalhadores ficam parados no =Recv= (roxo)
-  esperando sua vez, enquanto o mestre envia os 95 pedaços um por um --
+  esperando sua vez, enquanto o mestre envia os 95 pedaços um por um,
   por isso a borda roxa é diagonal: quanto maior o rank, mais tarde o
   dado chega. Depois, o mesmo =Bcast= da coletiva.
-- *Não bloqueante*: os =Irecv= retornam instantaneamente (mal aparecem)
-  e a espera real acontece no =Wait= (marrom). Importante: o rastreador
+- *Não bloqueante*: os =Irecv= retornam instantaneamente
+  e a espera real acontece no =Wait= (marrom). É de se notar que o rastreador
   não registra o =MPI_Ibcast= como um estado separado, então a espera
   pela matriz B também está dentro desse =Wait=.
 
+#+LATEX: \newpage
 * Tempo por operação MPI
 
 O gráfico abaixo decompõe o tempo total por função MPI para size=1500,
@@ -164,7 +161,7 @@ quantidades de processos:
 
 | Função        | Versão         | 48 proc  | 96 proc  |
 |---------------+----------------+----------+----------|
-| =MPI_Wait=    | não bloqueante | 1.75 s   | *9.70 s* |
+| =MPI_Wait=    | não bloqueante | 1.75 s   | 9.70 s   |
 | =MPI_Bcast=   | coletiva       | 0.18 s   | 0.51 s   |
 | =MPI_Bcast=   | bloqueante     | 0.17 s   | 0.53 s   |
 | =MPI_Gather=  | coletiva       | 0.11 s   | 0.07 s   |
@@ -188,8 +185,8 @@ Três coisas a notar:
 
 Sobre como esses custos crescem: comparando execuções com o mesmo
 número de processos em 1, 2 ou 3 nós, os tempos de =Scatter=, =Bcast= e
-=Recv= quase não mudam -- até ~32 processos, o que importa é *quantos
-processos participam e quanto dado trafega*, não quantos nós são
+=Recv= quase não mudam -- até ~32 processos, o que importa é quantos
+processos participam e quanto dado trafega, não quantos nós são
 usados. É acima de 32 processos (só possível com 2 ou 3 nós) que os
 custos coletivos crescem mais rápido e o =Wait= dispara.
 
@@ -264,12 +261,12 @@ função não chamada (com 1 processo não há trocas ponto a ponto);
 
 O que a tabela mostra, coluna a coluna:
 
-- *Todas as funções bloqueantes ficam baratas em todas as combinações*:
+- Todas as funções bloqueantes ficam baratas em todas as combinações*:
   =Scatter=, =Gather=, =Bcast=, =Send= e =Recv= raramente passam de
   0.1-0.2s, mesmo com 96 processos e matriz 1500. O custo cresce
   suavemente com o tamanho (mais bytes) e com o número de processos
   (mais participantes), mas nunca explode.
-- *A coluna =Wait= é a única que explode*, e de forma consistente nas
+- A coluna =Wait= é a única que possui um comportamento explosivo, e de forma consistente nas
   três dimensões: cresce com o tamanho (com 64 processos: 0.49s em
   size=500, 2.20s em 1000, 4.95s em 1500), cresce com os processos (em
   size=1500: 0.20s com 32, 1.75s com 48, 4.95s com 64, 9.70s com 96) e
@@ -277,14 +274,15 @@ O que a tabela mostra, coluna a coluna:
   abaixo de 0.16s. São exatamente as três assinaturas do problema do
   =Ibcast= descrito na seção de investigação: mais bytes, mais destinos
   e rede no caminho.
-- Os valores altos isolados de =Gather=/=Send= em size=1500 com 3-4
+- Os valores altos isolados de =Gather=\/=Send= em size=1500 com 3-4
   processos (~1.2-1.9s) não são custo de comunicação: são o mestre
   esperando trabalhadores que computam mais devagar (o desbalanceamento
   de memória citado na próxima seção) dentro da chamada de coleta.
 
+#+LATEX: \newpage
 * Tempo total de execução
 
-Mediana das 2 execuções, size=1500 (os tamanhos menores mostram as
+Média das 2 execuções, size=1500 (os tamanhos menores mostram as
 mesmas tendências).
 
 O gráfico abaixo mostra o tempo total para todas as combinações de
@@ -296,7 +294,7 @@ corresponde a um tamanho de matriz (linhas) e uma configuração de nós
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.8\textwidth]{imgs/plot_tempo_total.pdf}
-\caption{Tempo total de execução (mediana de 2 repetições) para todas as combinações experimentais. Eixo x em escala log.}
+\caption{Tempo total de execução (média de 2 repetições) para todas as combinações experimentais. Eixo x em escala log.}
 \label{fig:plot_tempo_total}
 \end{figure}
 #+END_LATEX
@@ -321,9 +319,9 @@ barras de erro indicam o desvio padrão entre as 2 repetições.
 |   1 |     8 | 4.95 s   | 5.15 s    | 5.06 s        |
 |   1 |    32 | 2.48 s   | 2.41 s    | 2.36 s        |
 |   2 |    32 | 2.44 s   | 2.37 s    | 2.37 s        |
-|   2 |    64 | 1.74 s   | 1.72 s    | *6.16 s*      |
-|   3 |    48 | 1.83 s   | 1.71 s    | *3.53 s*      |
-|   3 |    96 | 1.57 s   | 1.58 s    | *10.60 s*     |
+|   2 |    64 | 1.74 s   | 1.72 s    | 6.16 s        |
+|   3 |    48 | 1.83 s   | 1.71 s    | 3.53 s        |
+|   3 |    96 | 1.57 s   | 1.58 s    | 10.60 s       |
 
 O speedup de cada versão em relação à execução sequencial (1 processo,
 1 nó) é mostrado abaixo em escala log×log. A linha tracejada cinza
@@ -342,7 +340,7 @@ comunicação superando o ganho de paralelismo.
 
 Lendo a tabela de cima para baixo:
 
-- *Em um nó, as três versões empatam* em todas as linhas: as diferenças
+- Em um nó, as três versões empatam em todas as linhas: as diferenças
   ficam dentro da variabilidade entre repetições. Faz sentido: a
   multiplicação em si (o trecho branco do Gantt) leva segundos, enquanto
   toda a comunicação leva décimos de segundo. Quando a computação
@@ -353,7 +351,7 @@ Lendo a tabela de cima para baixo:
   nas três versões, ele vem da máquina (disputa por memória/cache entre
   processos no mesmo nó, já que cada processo carrega uma cópia de B com
   18MB) e não interfere na comparação entre os padrões.
-- *Com 2 e 3 nós, coletiva e bloqueante continuam melhorando* (o melhor
+- Com 2 e 3 nós, coletiva e bloqueante continuam melhorando (o melhor
   tempo do experimento é 1.57s, com 96 processos), mas *a versão não
   bloqueante piora muito*: 6.16s com 64 processos e 10.60s com 96 --
   quase 7x mais lenta que as outras duas.
@@ -371,10 +369,10 @@ com 96 processos, as durações dos 3 =Wait= são:
 | Espera                    | Duração    |
 |---------------------------+------------|
 | (1) linhas de A (=Irecv=) | 0.07 s     |
-| (2) matriz B (=Ibcast=)   | *9.1 s*    |
+| (2) matriz B (=Ibcast=)   | 9.1 s      |
 | (3) resultado (=Isend=)   | ~0 s       |
 
-Ou seja: praticamente todo o tempo de =Wait= é *espera pela matriz B*.
+Ou seja: praticamente todo o tempo de =Wait= é espera pela matriz B.
 A mesma difusão de B, quando feita com o =MPI_Bcast= bloqueante, custa
 0.5s (tabela da seção anterior). A diferença é a implementação: o
 =Bcast= bloqueante usa um algoritmo em árvore (o dado se propaga em
@@ -387,8 +385,8 @@ nó não há rede envolvida (memória compartilhada), por isso o problema
 só aparece em execuções multi-nó.
 
 A lição não é "assíncrono é lento", e sim dupla: (1) trocar chamadas
-bloqueantes por não bloqueantes /sem computar nada entre o início e o/
-/=Wait=/ apenas move a espera de lugar -- o algoritmo aqui não sobrepõe
+bloqueantes por não bloqueantes sem computar nada entre o início e o
+=Wait= apenas move a espera de lugar -- o algoritmo aqui não sobrepõe
 computação e comunicação; e (2) as versões não bloqueantes das
 coletivas podem ter implementação bem pior que as bloqueantes, e isso
 só aparece quando a comunicação cruza a rede.
@@ -405,12 +403,12 @@ só aparece quando a comunicação cruza a rede.
   espera. Sem essa sobreposição, ela no melhor caso empata e no pior
   caso perde por detalhes de implementação.
 
-Para este algoritmo, a versão com *operações coletivas (bloqueantes) é
-a preferível*: desempenho igual ou melhor em todos os cenários, código
+Para este algoritmo, a versão com operações coletivas (bloqueantes) é
+a preferível: desempenho igual ou melhor em todos os cenários, código
 mais simples e escalabilidade robusta. 
 
 * Referências
 
-  Alguns experimentos deste trabalho utilizaram os recursos da infraestrutura PCAD, http://pcad.inf.ufrgs.br, no INF/UFRGS.
+  Os experimentos deste trabalho utilizaram os recursos da infraestrutura PCAD, http://pcad.inf.ufrgs.br, no INF/UFRGS.
 
 
