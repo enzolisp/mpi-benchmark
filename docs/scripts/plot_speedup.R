@@ -62,7 +62,12 @@ ggplot(speedup, aes(x = nproc, y = speedup, color = tipo, shape = tipo)) +
   theme(
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
-    strip.background = element_rect(fill = "#f0f0f0")
+    strip.text = element_text(size = 15),
+    strip.background = element_rect(fill = "#f0f0f0"),
+    axis.title = element_text(size = 13),
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 14),
+    legend.title = element_text(size = 16)
   )
 
 ggsave("../imgs/plot_speedup.pdf", width = 10, height = 4.5)

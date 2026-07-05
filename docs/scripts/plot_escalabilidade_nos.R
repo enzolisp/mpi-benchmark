@@ -58,10 +58,14 @@ ggplot(exec_pn, aes(x = factor(nodes), y = tempo,
   theme_bw(base_size = 10) +
   theme(
     legend.position  = "bottom",
+    plot.subtitle = element_text(size = 20),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 15),
     panel.grid.minor = element_blank(),
+    strip.text = element_text(size = 15),
     strip.background = element_rect(fill = "#f0f0f0"),
-    legend.text       = element_text(size = 12),
-    legend.title      = element_text(size = 13),
+    legend.text       = element_text(size = 15),
+    legend.title      = element_text(size = 15),
     legend.key.size   = unit(0.8, "cm")
   )
 

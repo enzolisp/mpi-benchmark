@@ -68,10 +68,14 @@ ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
     strip.background = element_rect(fill = "#f0f0f0"),
-    axis.text.x      = element_text(angle = 45, hjust = 1),
-    legend.text       = element_text(size = 12),      
+    axis.title = element_text(size = 15),
+    strip.text = element_text(size = 15),
+    axis.text.y      = element_text( size = 10, angle = 45),
+    axis.text.x      = element_text(angle = 45, hjust = 1, size = 10),
+    legend.text       = element_text(size = 15),      
     legend.title      = element_text(size = 13),      
-    legend.key.size   = unit(0.8, "cm")  
+    legend.key.size   = unit(0.8, "cm"),
+    # subtitle.text    = element_text(size=13)
   )
 
 ggsave("../imgs/plot_funcoes_stacked.pdf", width = 12, height = 7)
@@ -101,7 +105,10 @@ ggplot(plot_nb, aes(x = nproc, y = t, color = funcao, linetype = tipo, shape = t
   theme(
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
-    strip.background = element_rect(fill = "#f0f0f0")
+    strip.text = element_text(size = 15),
+    strip.background = element_rect(fill = "#f0f0f0"),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 12)
   )
 
 ggsave("../imgs/plot_wait_vs_bcast.pdf", width = 10, height = 4)

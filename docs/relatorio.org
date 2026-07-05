@@ -155,6 +155,7 @@ comunicação) versus o =MPI_Bcast= das versões coletiva e bloqueante
 \end{figure}
 #+END_LATEX
 
+#+LATEX: \newpage
 A tabela abaixo mostra o tempo médio por processo em cada função
 (mediana das 2 execuções), para size=1500 em 3 nós, nas duas maiores
 quantidades de processos:
@@ -175,7 +176,7 @@ Três coisas a notar:
 
 1. Quase todas as operações custam décimos de segundo ou menos, mesmo
    com 96 processos. A exceção é o =MPI_Wait= da versão não bloqueante:
-   1.75s com 48 processos e 9.7s com 96 -- dobrar os processos
+   1.75s com 48 processos e 9.7s com 96, dobrar os processos
    multiplicou o custo por 5.5.
 2. =Isend= e =Irecv= parecem "de graça" (milésimos de segundo), mas é
    ilusão: eles só iniciam a operação. O tempo que a comunicação
@@ -274,7 +275,7 @@ O que a tabela mostra, coluna a coluna:
   abaixo de 0.16s. São exatamente as três assinaturas do problema do
   =Ibcast= descrito na seção de investigação: mais bytes, mais destinos
   e rede no caminho.
-- Os valores altos isolados de =Gather=\/=Send= em size=1500 com 3-4
+- Os valores altos isolados de =Gather/Send= em size=1500 com 3-4
   processos (~1.2-1.9s) não são custo de comunicação: são o mestre
   esperando trabalhadores que computam mais devagar (o desbalanceamento
   de memória citado na próxima seção) dentro da chamada de coleta.
@@ -299,6 +300,7 @@ corresponde a um tamanho de matriz (linhas) e uma configuração de nós
 \end{figure}
 #+END_LATEX
 
+#+LATEX: \newpage
 O gráfico de escalabilidade abaixo fixa o número de processos por nó e
 varia o número de nós, isolando o efeito da comunicação inter-nó. As
 barras de erro indicam o desvio padrão entre as 2 repetições.
@@ -345,18 +347,12 @@ Lendo a tabela de cima para baixo:
   multiplicação em si (o trecho branco do Gantt) leva segundos, enquanto
   toda a comunicação leva décimos de segundo. Quando a computação
   domina, o padrão de comunicação não importa.
-- Uma curiosidade: com 2 processos o tempo /não cai/ em relação a 1
-  (18.7s -> 19.6s). Isso só acontece no tamanho 1500 -- nos tamanhos 500
-  e 1000 o tempo cai perfeitamente pela metade. Como o efeito é idêntico
-  nas três versões, ele vem da máquina (disputa por memória/cache entre
-  processos no mesmo nó, já que cada processo carrega uma cópia de B com
-  18MB) e não interfere na comparação entre os padrões.
 - Com 2 e 3 nós, coletiva e bloqueante continuam melhorando (o melhor
-  tempo do experimento é 1.57s, com 96 processos), mas *a versão não
-  bloqueante piora muito*: 6.16s com 64 processos e 10.60s com 96 --
+  tempo do experimento é 1.57s, com 96 processos), mas a versão não
+  bloqueante piora muito: 6.16s com 64 processos e 10.60s com 96 --
   quase 7x mais lenta que as outras duas.
 
-* Investigando o colapso da versão não bloqueante
+* Colapso da versão não bloqueante
 
 Por que a versão assíncrona fica 7x mais lenta justamente na maior
 configuração? O rastro permite responder passo a passo.
@@ -384,7 +380,7 @@ para cada um dos 64 processos remotos por uma rede de 1Gb/s, levaria
 nó não há rede envolvida (memória compartilhada), por isso o problema
 só aparece em execuções multi-nó.
 
-A lição não é "assíncrono é lento", e sim dupla: (1) trocar chamadas
+Portanto, a lentidão do modelo assíncrono vem de dois lugares: (1) trocar chamadas
 bloqueantes por não bloqueantes sem computar nada entre o início e o
 =Wait= apenas move a espera de lugar -- o algoritmo aqui não sobrepõe
 computação e comunicação; e (2) as versões não bloqueantes das

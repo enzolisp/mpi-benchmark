@@ -48,7 +48,10 @@ ggplot(exec, aes(x = nproc, y = tempo, color = tipo, shape = tipo)) +
   theme(
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
-    strip.background = element_rect(fill = "#f0f0f0")
+    strip.text = element_text(size = 15),
+    strip.background = element_rect(fill = "#f0f0f0"),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 13)
   )
 
 ggsave("../imgs/plot_tempo_total.pdf", width = 10, height = 8)

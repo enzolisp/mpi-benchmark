@@ -61,7 +61,11 @@ p_geral <- ggplot(gantt,
     legend.direction = "horizontal",
     panel.grid.minor = element_blank(),
     panel.grid.major.y = element_blank(),
-    strip.background = element_rect(fill = "#e0e0e0")
+    strip.text = element_text(size = 15),
+    strip.background = element_rect(fill = "#e0e0e0"),
+    legend.text       = element_text(size = 15),
+    legend.title      = element_text(size = 13),
+    legend.key.size   = unit(0.8, "cm")
   ) +
   guides(fill = guide_legend(nrow = 2))
 
@@ -98,7 +102,11 @@ p_zoom <- ggplot(gantt_zoom,
     legend.direction = "horizontal",
     panel.grid.minor = element_blank(),
     panel.grid.major.y = element_blank(),
-    strip.background = element_rect(fill = "#e0e0e0")
+    strip.background = element_rect(fill = "#e0e0e0"),
+    strip.text        = element_text(size = 15),
+    legend.text       = element_text(size = 15),
+    legend.title      = element_text(size = 13),
+    legend.key.size   = unit(0.8, "cm")
   ) +
   guides(fill = guide_legend(nrow = 2))
 
