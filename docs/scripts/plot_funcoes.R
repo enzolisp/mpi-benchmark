@@ -6,12 +6,10 @@ pdf(NULL)
 
 df <- read.csv("../../results/rastro_completo.csv", stringsAsFactors = FALSE)
 
-# Funções relevantes (exclui MPI_Finalize, MPI_Comm_rank/size, MPI_Wtime)
 funcs_keep <- c("MPI_Scatter", "MPI_Gather", "MPI_Bcast",
                 "MPI_Send", "MPI_Recv",
                 "MPI_Isend", "MPI_Irecv", "MPI_Wait")
 
-# Tempo médio por processo por função (média entre ranks, mediana entre reps)
 func_time <- df %>%
   filter(funcao %in% funcs_keep) %>%
   group_by(tipo, size, nproc, nodes, rep, rank, funcao) %>%
@@ -19,9 +17,7 @@ func_time <- df %>%
   group_by(tipo, size, nproc, nodes, rep, funcao) %>%
   summarise(t_mean_rank = mean(t_rank), .groups = "drop") %>%
   group_by(tipo, size, nproc, nodes, funcao) %>%
-  summarise(t = median(t_mean_rank), .groups = "drop")
-
-func_time <- func_time %>%
+  summarise(t = median(t_mean_rank), .groups = "drop") %>%
   mutate(
     tipo = recode(tipo,
       "coletiva"          = "Coletiva",
@@ -29,7 +25,6 @@ func_time <- func_time %>%
       "p2p_naobloqueante" = "P2P Não Bloqueante"
     ),
     size_label = paste0(size, "×", size),
-    # Agrupar Bcast das versões coletiva/bloqueante como a mesma função visualmente
     funcao = factor(funcao, levels = c(
       "MPI_Scatter","MPI_Gather","MPI_Bcast",
       "MPI_Send","MPI_Recv",
@@ -48,7 +43,7 @@ cores_funcao <- c(
   "MPI_Wait"    = "#8c510a"
 )
 
-# Gráfico: size=1500, todos nodes e nproc, stacked bar por tipo
+# --- Gráfico 1: stacked bar ---
 plot_data <- func_time %>% filter(size == 1500)
 
 ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
@@ -57,7 +52,6 @@ ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
              scales = "free_x", space = "free_x") +
   scale_fill_manual(values = cores_funcao) +
   labs(
-    # title    = "Tempo médio por processo em cada função MPI (size = 1500×1500)",
     subtitle = "Mediana de 2 repetições; média entre os ranks",
     x        = "Número de processos",
     y        = "Tempo (s)",
@@ -68,49 +62,66 @@ ggplot(plot_data, aes(x = factor(nproc), y = t, fill = funcao)) +
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
     strip.background = element_rect(fill = "#f0f0f0"),
-    axis.title = element_text(size = 15),
-    strip.text = element_text(size = 15),
-    axis.text.y      = element_text( size = 10, angle = 45),
+    axis.title       = element_text(size = 15),
+    strip.text       = element_text(size = 15),
+    axis.text.y      = element_text(size = 10, angle = 45),
     axis.text.x      = element_text(angle = 45, hjust = 1, size = 10),
-    legend.text       = element_text(size = 15),      
-    legend.title      = element_text(size = 13),      
-    legend.key.size   = unit(0.8, "cm"),
-    # subtitle.text    = element_text(size=13)
+    legend.text      = element_text(size = 15),
+    legend.title     = element_text(size = 13),
+    legend.key.size  = unit(0.8, "cm")
   )
 
 ggsave("../imgs/plot_funcoes_stacked.pdf", width = 12, height = 7)
-# ggsave("../imgs/plot_funcoes_stacked.png", width = 12, height = 7, dpi = 150)
 message("Salvo: plot_funcoes_stacked.pdf")
 
 
-# --- Gráfico 2: só MPI_Wait e MPI_Bcast para destacar o colapso da versão NB ---
+# --- Gráfico 2: Wait vs Bcast ---
 plot_nb <- func_time %>%
-  filter(size == 1500, funcao %in% c("MPI_Wait", "MPI_Bcast")) %>%
-  mutate(nodes_label = paste0(nodes, ifelse(nodes==1," nó"," nós")))
+  filter(
+    size == 1500,
+    (funcao == "MPI_Wait"  & tipo == "P2P Não Bloqueante") |
+    (funcao == "MPI_Bcast" & tipo != "P2P Não Bloqueante")
+  ) %>%
+  mutate(
+    nodes_label = factor(
+      paste0(nodes, ifelse(nodes==1," nó"," nós")),
+      levels = c("1 nó","2 nós","3 nós")
+    ),
+    versao_label = case_when(
+      funcao == "MPI_Wait" ~ "Wait — Não bloqueante",
+      tipo == "Coletiva"   ~ "Bcast — Coletiva",
+      TRUE                 ~ "Bcast — Bloqueante"
+    )
+  )
 
-ggplot(plot_nb, aes(x = nproc, y = t, color = funcao, linetype = tipo, shape = tipo)) +
+ggplot(plot_nb, aes(x = nproc, y = t, color = versao_label, shape = versao_label)) +
   geom_line(linewidth = 0.8) +
   geom_point(size = 2.5) +
   facet_wrap(~ nodes_label, ncol = 3, scales = "free_x") +
-  scale_color_manual(values = c("MPI_Wait" = "#8c510a", "MPI_Bcast" = "#e31a1c")) +
+  scale_color_manual(values = c(
+    "Bcast — Coletiva"      = "#e31a1c",
+    "Bcast — Bloqueante"    = "#f4a582",
+    "Wait — Não bloqueante" = "#8c510a"
+  )) +
+  scale_shape_manual(values = c(
+    "Bcast — Coletiva"      = 16,
+    "Bcast — Bloqueante"    = 17,
+    "Wait — Não bloqueante" = 15
+  )) +
   labs(
-    # title    = "MPI_Wait (não bloqueante) vs MPI_Bcast (coletiva/bloqueante) — size=1500",
-    x        = "Número de processos",
-    y        = "Tempo médio por processo (s)",
-    color    = "Função",
-    linetype = "Versão",
-    shape    = "Versão"
+    x     = "Número de processos",
+    y     = "Tempo médio por processo (s)",
+    color = NULL,
+    shape = NULL
   ) +
   theme_bw(base_size = 11) +
   theme(
     legend.position  = "bottom",
     panel.grid.minor = element_blank(),
-    strip.text = element_text(size = 15),
+    strip.text       = element_text(size = 15),
     strip.background = element_rect(fill = "#f0f0f0"),
-    legend.title = element_text(size = 15),
-    legend.text = element_text(size = 12)
+    legend.text      = element_text(size = 12)
   )
 
 ggsave("../imgs/plot_wait_vs_bcast.pdf", width = 10, height = 4)
-# ggsave("../imgs/plot_wait_vs_bcast.png", width = 10, height = 4, dpi = 150)
 message("Salvo: plot_wait_vs_bcast.pdf")
