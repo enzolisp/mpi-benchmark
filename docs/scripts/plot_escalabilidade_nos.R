@@ -33,7 +33,8 @@ exec <- exec %>%
 exec_pn <- exec %>%
   mutate(pn = nproc / nodes) %>%
   filter(pn %in% c(1, 2, 4, 8, 16, 32)) %>%
-  mutate(pn_label = paste0(pn, " proc/nó"))
+  mutate(pn_label = factor(paste0(pn, " proc/nó"),
+                           levels = paste0(c(1, 2, 4, 8, 16, 32), " proc/nó")))
 
 ggplot(exec_pn, aes(x = factor(nodes), y = tempo,
                     color = tipo, shape = tipo, group = tipo)) +
